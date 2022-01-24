@@ -30,7 +30,12 @@ bgpd_CFLAGS = $(AM_CFLAGS)
 bgpd_CFLAGS += -DSYSCONFDIR=\"$(sysconfdir)\"
 bgpd_CFLAGS += -DRUNSTATEDIR=\"$(runstatedir)\"
 
-bgpd_LDADD = $(PLATFORM_LDADD) $(PROG_LDADD) -lutil
+if HOST_SOLARIS
+bgpd_CFLAGS +=	-Du_int8_t=uint8_t -Du_int16_t=uint16_t \
+		-Du_int32_t=uint32_t -Du_int64_t=uint64_t
+endif
+
+bgpd_LDADD = $(PLATFORM_LDADD) $(PROG_LDADD)
 bgpd_LDADD += $(top_builddir)/compat/libcompat.la
 bgpd_LDADD += $(top_builddir)/compat/libcompatnoopt.la
 
@@ -56,6 +61,9 @@ bgpd_SOURCES += kroute-freebsd.c
 else
 if HAVE_MNL
 bgpd_SOURCES += kroute-linux.c
+else
+if HOST_SOLARIS
+bgpd_SOURCES += kroute-illumos.c
 else
 bgpd_SOURCES += kroute-disabled.c
 endif

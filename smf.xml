@@ -1,0 +1,40 @@
+<?xml version='1.0'?>
+<!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>
+<service_bundle type='manifest' name='export'>
+  <service name='network/bgp' type='service' version='0'>
+    <create_default_instance enabled='true'/>
+    <single_instance/>
+    <dependency name='fs' grouping='require_all' restart_on='none' type='service'>
+      <service_fmri value='svc:/system/filesystem/usr:default'/>
+    </dependency>
+    <dependency name='ipv6-forwarding' grouping='optional_all' restart_on='refresh' type='service'>
+      <service_fmri value='svc:/network/ipv6-forwarding'/>
+    </dependency>
+    <dependency name='ipv4-forwarding' grouping='optional_all' restart_on='refresh' type='service'>
+      <service_fmri value='svc:/network/ipv4-forwarding'/>
+    </dependency>
+    <dependency name='network_routing_setup' grouping='require_all' restart_on='refresh' type='service'>
+      <service_fmri value='svc:/network/routing-setup'/>
+    </dependency>
+    <exec_method name='start' type='method' exec='/opt/openbgpd72/sbin/bgpd' timeout_seconds='60'>
+      <method_context>
+        <method_environment>
+          <envvar name='UMEM_DEBUG' value='default'/>
+          <envvar name='LD_PRELOAD' value='/usr/lib/libumem.so'/>
+          <envvar name='LD_PRELOAD_64' value='/usr/lib/64/libumem.so'/>
+        </method_environment>
+      </method_context>
+    </exec_method>
+    <exec_method name='stop' type='method' exec=':kill' timeout_seconds='60'/>
+    <exec_method name='refresh' type='method' exec='/opt/openbgpd72/sbin/bgpctl reload' timeout_seconds='60'/>
+    <property_group name='startd' type='framework'>
+      <propval name='ignore_error' type='astring' value='core,signal'/>
+    </property_group>
+    <stability value='Unstable'/>
+    <template>
+      <common_name>
+        <loctext xml:lang='C'>OpenBGP daemon</loctext>
+      </common_name>
+    </template>
+  </service>
+</service_bundle>

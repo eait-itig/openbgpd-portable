@@ -334,6 +334,10 @@ if test "$disable_fib" = no; then
 			[AC_MSG_ERROR([libmnl >= 1.0.4 required])])
 	fi
 fi
+if test x$HOST_OS = xsolaris; then
+  AC_SEARCH_LIBS([socket], [socket])
+  AC_SEARCH_LIBS([gethostbyname], [nsl])
+fi
 
 # Share test results with automake
 AM_CONDITIONAL([HAVE_ASPRINTF], [test "x$ac_cv_func_asprintf" = xyes])

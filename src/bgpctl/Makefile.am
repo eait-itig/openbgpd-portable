@@ -29,7 +29,12 @@ bgpctl_CFLAGS = $(AM_CFLAGS)
 bgpctl_CFLAGS += -DSYSCONFDIR=\"$(sysconfdir)\"
 bgpctl_CFLAGS += -DRUNSTATEDIR=\"$(runstatedir)\"
 
-bgpctl_LDADD = $(PLATFORM_LDADD) $(PROG_LDADD) -lutil -lm
+if HOST_SOLARIS
+bgpctl_CFLAGS +=	-Du_int8_t=uint8_t -Du_int16_t=uint16_t \
+			-Du_int32_t=uint32_t -Du_int64_t=uint64_t
+endif
+
+bgpctl_LDADD = $(PLATFORM_LDADD) $(PROG_LDADD) -lm
 bgpctl_LDADD += $(top_builddir)/compat/libcompat.la
 bgpctl_LDADD += $(top_builddir)/compat/libcompatnoopt.la
 
