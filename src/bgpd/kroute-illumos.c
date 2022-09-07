@@ -2872,6 +2872,8 @@ send_rtmsg(int fd, int action, struct ktable *kt, struct kroute_node *kr,
 		hdr.rtm_flags |= RTF_BLACKHOLE;
 	if (kroute->flags & F_REJECT)
 		hdr.rtm_flags |= RTF_REJECT;
+	if (kroute->prefixlen == 32)
+		hdr.rtm_flags |= RTF_HOST;
 	hdr.rtm_seq = kr_state.rtseq++;	/* overflow doesn't matter */
 	hdr.rtm_msglen = sizeof(hdr);
 	/* adjust iovec */
@@ -3015,6 +3017,8 @@ send_rt6msg(int fd, int action, struct ktable *kt, struct kroute6_node *kr,
 		hdr.rtm_flags |= RTF_BLACKHOLE;
 	if (kroute->flags & F_REJECT)
 		hdr.rtm_flags |= RTF_REJECT;
+	if (kroute->prefixlen == 128)
+		hdr.rtm_flags |= RTF_HOST;
 	hdr.rtm_seq = kr_state.rtseq++;	/* overflow doesn't matter */
 	hdr.rtm_msglen = sizeof(hdr);
 	/* adjust iovec */
