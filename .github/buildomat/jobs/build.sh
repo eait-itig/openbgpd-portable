@@ -22,6 +22,7 @@ banner packages
 banner configure
 #
 export MAKE=gmake
+export AR=gar
 ./update.sh OPENBSD_7_1
 mkdir m4
 rm -fr autom4te.cache
