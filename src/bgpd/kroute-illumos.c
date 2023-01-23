@@ -43,6 +43,12 @@
 #include "bgpd.h"
 #include "log.h"
 
+#define RTP_NONE        0
+#define RTP_LOCAL       1
+#define RTP_BGP         48
+#define RTP_MAX         63
+#define RTP_ANY         64
+
 struct ktable		**krt;
 u_int			  krt_size;
 
