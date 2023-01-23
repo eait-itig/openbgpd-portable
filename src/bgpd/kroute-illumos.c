@@ -475,6 +475,8 @@ kr_change(u_int rtableid, struct kroute_full *kl)
 {
 	struct ktable		*kt;
 
+	kl->flags |= F_BGPD;
+	kl->priority = kr_state.fib_prio;
 	if ((kt = ktable_get(rtableid)) == NULL)
 		/* too noisy during reloads, just ignore */
 		return (0);
@@ -870,6 +872,9 @@ int
 kr_delete(u_int rtableid, struct kroute_full *kl)
 {
 	struct ktable		*kt;
+
+	kl->flags |= F_BGPD;
+	kl->priority = kr_state.fib_prio;
 
 	if ((kt = ktable_get(rtableid)) == NULL)
 		/* too noisy during reloads, just ignore */
