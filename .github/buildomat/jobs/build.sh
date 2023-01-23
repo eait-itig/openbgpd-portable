@@ -23,11 +23,15 @@ banner configure
 #
 export MAKE=gmake
 export AR=gar
-./update.sh OPENBSD_7_1
+./update.sh OPENBSD_7_2
 mkdir m4
 rm -fr autom4te.cache
 autoreconf -fi
-./configure --prefix=/opt/openbgpd
+./configure \
+  --prefix=/opt/openbgpd \
+  --localstatedir=/var \
+  --sysconfdir=/etc \
+  --disable-bgplgd
 
 sed 's/-fuse-linker-plugin)/-fuse-linker-plugin|-fstack-protector*)/' \
   ltmain.sh > ltmain.sh.fixed
@@ -45,6 +49,8 @@ gmake -j2
 banner install
 #
 pfexec gmake install -j2 DESTDIR=/work/dist
+pfexec /usr/gnu/bin/install -D -g sys -o root \
+  smf.xml /work/dist/lib/svc/manifest/network/bgp.xml
 
 #
 banner tarball

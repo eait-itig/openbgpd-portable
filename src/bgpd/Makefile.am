@@ -70,6 +70,7 @@ endif
 endif
 endif
 endif
+endif
 bgpd_SOURCES += control.c
 if HOST_OPENBSD
 bgpd_SOURCES += pfkey.c
