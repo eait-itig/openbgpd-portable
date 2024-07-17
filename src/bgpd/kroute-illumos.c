@@ -23,8 +23,9 @@
 #include <sys/stropts.h>
 #include <sys/tihdr.h>
 #include <sys/mac.h>
-#include <inet/mib2.h>
+#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <inet/mib2.h>
 #include <arpa/inet.h>
 #include <inet/ip.h>
 #include <net/if.h>
@@ -208,8 +209,6 @@ void		 kroute_detach_nexthop(struct ktable *, struct knexthop *);
 
 int		protect_lo(struct ktable *);
 u_int8_t	prefixlen_classful(in_addr_t);
-u_int8_t	mask2prefixlen(in_addr_t);
-u_int8_t	mask2prefixlen6(struct sockaddr_in6 *);
 uint64_t	ift2ifm(uint8_t);
 const char	*get_media_descr(uint64_t);
 const char	*get_linkstate(uint8_t, int);
@@ -762,10 +761,15 @@ fetchtable(struct ktable *kt, int init)
 			if (ire_flags & RTF_PROTO2)
 				kr->priority = kr_state.fib_prio;
 			kr->prefix.s_addr = rp->ipRouteDest;
-			if (ire_flags & RTF_HOST)
+			if (ire_flags & RTF_HOST) {
 				kr->prefixlen = 32;
-			else
-				kr->prefixlen = mask2prefixlen(rp->ipRouteMask);
+			} else {
+				struct sockaddr_in sin;
+				bzero(&sin, sizeof (sin));
+				sin.sin_addr.s_addr = rp->ipRouteMask;
+				kr->prefixlen = mask2prefixlen(AF_INET,
+				    (struct sockaddr *)&sin);
+			}
 
 			kru = kroute_find(kt, kr->prefix, kr->prefixlen,
 			    kr->priority);
@@ -2798,67 +2802,6 @@ prefixlen_classful(in_addr_t ina)
 		return (8);
 }
 
-u_int8_t
-mask2prefixlen(in_addr_t ina)
-{
-	if (ina == 0)
-		return (0);
-	else
-		return (33 - ffs(ntohl(ina)));
-}
-
-u_int8_t
-mask2prefixlen6(struct sockaddr_in6 *sa_in6)
-{
-	u_int8_t	*ap, *ep;
-	u_int		 l = 0;
-
-	/*
-	 * sin6_len is the size of the sockaddr so substract the offset of
-	 * the possibly truncated sin6_addr struct.
-	 */
-	ap = (u_int8_t *)&sa_in6->sin6_addr;
-	ep = (u_int8_t *)sa_in6 + sizeof (struct in6_addr);
-	for (; ap < ep; ap++) {
-		/* this "beauty" is adopted from sbin/route/show.c ... */
-		switch (*ap) {
-		case 0xff:
-			l += 8;
-			break;
-		case 0xfe:
-			l += 7;
-			goto done;
-		case 0xfc:
-			l += 6;
-			goto done;
-		case 0xf8:
-			l += 5;
-			goto done;
-		case 0xf0:
-			l += 4;
-			goto done;
-		case 0xe0:
-			l += 3;
-			goto done;
-		case 0xc0:
-			l += 2;
-			goto done;
-		case 0x80:
-			l += 1;
-			goto done;
-		case 0x00:
-			goto done;
-		default:
-			fatalx("non contiguous inet6 netmask");
-		}
-	}
-
- done:
-	if (l > sizeof(struct in6_addr) * 8)
-		fatalx("%s: prefixlen %d out of bound", __func__, l);
-	return (l);
-}
-
 static struct in6_addr *
 prefixlen2mask6(u_int8_t prefixlen)
 {
@@ -3530,7 +3473,8 @@ dispatch_rtmsg_addr(struct rt_msghdr *rtm, struct sockaddr *rti_info[RTAX_MAX],
 		prefix.v4.s_addr = ((struct sockaddr_in *)sa)->sin_addr.s_addr;
 		sa_in = (struct sockaddr_in *)rti_info[RTAX_NETMASK];
 		if (sa_in != NULL) {
-			prefixlen = mask2prefixlen(sa_in->sin_addr.s_addr);
+			prefixlen = mask2prefixlen(AF_INET,
+			    (struct sockaddr *)sa_in);
 		} else if (rtm->rtm_flags & RTF_HOST)
 			prefixlen = 32;
 		else
@@ -3543,7 +3487,8 @@ dispatch_rtmsg_addr(struct rt_msghdr *rtm, struct sockaddr *rti_info[RTAX_MAX],
 		    sizeof(struct in6_addr));
 		sa_in6 = (struct sockaddr_in6 *)rti_info[RTAX_NETMASK];
 		if (sa_in6 != NULL) {
-			prefixlen = mask2prefixlen6(sa_in6);
+			prefixlen = mask2prefixlen(AF_INET6,
+			    (struct sockaddr *)sa_in6);
 		} else if (rtm->rtm_flags & RTF_HOST)
 			prefixlen = 128;
 		else
@@ -3804,4 +3749,85 @@ add6:
 	}
 
 	return (0);
+}
+
+
+static uint8_t
+mask2prefixlen4(struct sockaddr_in *sa_in)
+{
+	in_addr_t ina;
+
+	ina = sa_in->sin_addr.s_addr;
+	if (ina == 0)
+		return (0);
+	else
+		return (33 - ffs(ntohl(ina)));
+}
+
+static uint8_t
+mask2prefixlen6(struct sockaddr_in6 *sa_in6)
+{
+	uint8_t	*ap, *ep;
+	u_int		 l = 0;
+
+	/*
+	 * There is no sin6_len for portability so calculate the end pointer
+	 * so that a full IPv6 address fits. On systems without sa_len this
+	 * is fine, on OpenBSD this is also correct. On other systems the
+	 * assumtion is they behave like OpenBSD or that there is at least
+	 * a 0 byte right after the end of the truncated sockaddr_in6.
+	 */
+	ap = (uint8_t *)&sa_in6->sin6_addr;
+	ep = ap + sizeof(struct in6_addr);
+	for (; ap < ep; ap++) {
+		/* this "beauty" is adopted from sbin/route/show.c ... */
+		switch (*ap) {
+		case 0xff:
+			l += 8;
+			break;
+		case 0xfe:
+			l += 7;
+			goto done;
+		case 0xfc:
+			l += 6;
+			goto done;
+		case 0xf8:
+			l += 5;
+			goto done;
+		case 0xf0:
+			l += 4;
+			goto done;
+		case 0xe0:
+			l += 3;
+			goto done;
+		case 0xc0:
+			l += 2;
+			goto done;
+		case 0x80:
+			l += 1;
+			goto done;
+		case 0x00:
+			goto done;
+		default:
+			fatalx("non contiguous inet6 netmask");
+		}
+	}
+
+ done:
+	if (l > sizeof(struct in6_addr) * 8)
+		fatalx("%s: prefixlen %d out of bound", __func__, l);
+	return (l);
+}
+
+uint8_t
+mask2prefixlen(sa_family_t af, struct sockaddr *mask)
+{
+	switch (af) {
+	case AF_INET:
+		return mask2prefixlen4((struct sockaddr_in *)mask);
+	case AF_INET6:
+		return mask2prefixlen6((struct sockaddr_in6 *)mask);
+	default:
+		fatalx("%s: unsupported af", __func__);
+	}
 }

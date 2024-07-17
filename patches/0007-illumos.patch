@@ -1,0 +1,75 @@
+From 0fa9d77204a2331f3a171a34cc9590aa08b03833 Mon Sep 17 00:00:00 2001
+From: Alex Wilson <alex@cooperi.net>
+Date: Mon, 24 Jan 2022 10:42:54 +1000
+Subject: [PATCH] xxx: illumos patches
+
+---
+ src/usr.sbin/bgpctl/bgpctl.c | 2 ++
+ src/usr.sbin/bgpd/control.c  | 2 ++
+ src/usr.sbin/bgpd/parse.y    | 3 +++
+ src/usr.sbin/bgpd/session.c  | 2 ++
+ 4 files changed, 9 insertions(+)
+
+diff --git a/src/usr.sbin/bgpctl/bgpctl.c b/src/usr.sbin/bgpctl/bgpctl.c
+index 1dd4c7a67..aff3d6352 100644
+--- src/usr.sbin/bgpctl/bgpctl.c
++++ src/usr.sbin/bgpctl/bgpctl.c
+@@ -77,6 +77,8 @@ usage(void)
+ 	exit(1);
+ }
+ 
++#undef	sun
++
+ int
+ main(int argc, char *argv[])
+ {
+diff --git a/src/usr.sbin/bgpd/control.c b/src/usr.sbin/bgpd/control.c
+index 49fd55ad1..4c9db8046 100644
+--- src/usr.sbin/bgpd/control.c
++++ src/usr.sbin/bgpd/control.c
+@@ -39,6 +39,8 @@ int		 control_close(struct ctl_conn *);
+ void		 control_result(struct ctl_conn *, u_int);
+ ssize_t		 imsg_read_nofd(struct imsgbuf *);
+ 
++#undef sun
++
+ int
+ control_check(char *path)
+ {
+diff --git a/src/usr.sbin/bgpd/parse.y b/src/usr.sbin/bgpd/parse.y
+index fa8047d5b..4ec341d60 100644
+--- src/usr.sbin/bgpd/parse.y
++++ src/usr.sbin/bgpd/parse.y
+@@ -27,6 +27,9 @@
+ #include <sys/socket.h>
+ #include <sys/stat.h>
+ #include <sys/un.h>
++#if defined(__sun)
++#include <netinet/in_systm.h>
++#endif
+ #include <netinet/in.h>
+ #include <netinet/ip.h>
+ #include <netinet/ip_icmp.h>
+diff --git a/src/usr.sbin/bgpd/session.c b/src/usr.sbin/bgpd/session.c
+index dd24eb29a..4d2003b69 100644
+--- src/usr.sbin/bgpd/session.c
++++ src/usr.sbin/bgpd/session.c
+@@ -1154,6 +1154,7 @@ session_setup_socket(struct peer *p)
+ 			 */
+ 			if (p->conf.ttlsec) {
+ 				ttl = 256 - p->conf.distance;
++#if defined(IP_MINTTL)
+ 				if (setsockopt(p->fd, IPPROTO_IP, IP_MINTTL,
+ 				    &ttl, sizeof(ttl)) == -1) {
+ 					log_peer_warn(&p->conf,
+@@ -1161,6 +1162,7 @@ session_setup_socket(struct peer *p)
+ 					    "setsockopt MINTTL");
+ 					return (-1);
+ 				}
++#endif
+ 				ttl = 255;
+ 			}
+ 
+-- 
+2.45.2
+

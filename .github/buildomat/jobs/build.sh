@@ -23,7 +23,11 @@ banner configure
 #
 export MAKE=gmake
 export AR=gar
-./update.sh OPENBSD_7_2
+./update.sh
+(cd openbsd &&
+ git checkout -b release openbgpd-8.5 &&
+ rm -fr .git)
+./update.sh
 mkdir m4
 rm -fr autom4te.cache
 autoreconf -fi

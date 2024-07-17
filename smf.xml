@@ -16,7 +16,7 @@
     <dependency name='network_routing_setup' grouping='require_all' restart_on='refresh' type='service'>
       <service_fmri value='svc:/network/routing-setup'/>
     </dependency>
-    <exec_method name='start' type='method' exec='/opt/openbgpd72/sbin/bgpd' timeout_seconds='60'>
+    <exec_method name='start' type='method' exec='/opt/openbgpd/sbin/bgpd' timeout_seconds='60'>
       <method_context>
         <method_environment>
           <envvar name='UMEM_DEBUG' value='default'/>
@@ -26,7 +26,7 @@
       </method_context>
     </exec_method>
     <exec_method name='stop' type='method' exec=':kill' timeout_seconds='60'/>
-    <exec_method name='refresh' type='method' exec='/opt/openbgpd72/sbin/bgpctl reload' timeout_seconds='60'/>
+    <exec_method name='refresh' type='method' exec='/opt/openbgpd/sbin/bgpctl reload' timeout_seconds='60'/>
     <property_group name='startd' type='framework'>
       <propval name='ignore_error' type='astring' value='core,signal'/>
     </property_group>
