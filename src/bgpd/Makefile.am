@@ -81,7 +81,11 @@ else
 if HAVE_LINUX_TCPMD5
 bgpd_SOURCES += pfkey-linux.c
 else
+if HAVE_ILLUMOS_TCPSIG
+bgpd_SOURCES += pfkey-illumos.c
+else
 bgpd_SOURCES += pfkey-disabled.c
+endif
 endif
 endif
 endif

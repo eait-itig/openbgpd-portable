@@ -337,6 +337,25 @@ fi
 if test x$HOST_OS = xsolaris; then
   AC_SEARCH_LIBS([socket], [socket])
   AC_SEARCH_LIBS([gethostbyname], [nsl])
+
+  AC_MSG_CHECKING([for illumos TCP md5 signature support])
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#define _XOPEN_SOURCE 800
+#define __EXTENSIONS__
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+#include <net/pfkeyv2.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#if !defined(TCP_MD5SIG) || !defined(SADB_X_SATYPE_TCPSIG)
+# error not supported
+#endif
+]])], [
+		AC_MSG_RESULT([yes])
+		ac_cv_illumos_tcpsig="yes" ], [
+		AC_MSG_RESULT([no])
+		ac_cv_illumos_tcpsig="no" ])
 fi
 
 # Share test results with automake
@@ -389,6 +408,7 @@ AC_CHECK_FUNCS([setfib])
 AM_CONDITIONAL([HAVE_SETFIB], [test "x$HOST_OS" = xfreebsd \
 	    -a "x$ac_cv_func_setfib" = "xyes"])
 
+AM_CONDITIONAL([HAVE_ILLUMOS_TCPSIG], [test "x$ac_cv_illumos_tcpsig" = xyes])
 
 if test "$enable_bgplgd" = yes; then
 	AC_ARG_WITH([event],
